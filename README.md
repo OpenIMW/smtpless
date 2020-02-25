@@ -1,2 +1,2 @@
 # smtpless
-Serverless Email SMTP Sender
+**WIP** Serverless Email SMTP Sender
