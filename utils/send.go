@@ -6,27 +6,25 @@ import (
 )
 
 type RawEmail struct {
-	From string
-	Name string
-	Subject string
-	Phone string
-	Message string
+	From    string `json:"email"`
+	Name    string `json:"name"`
+	Subject string `json:"subject"`
+	Phone   string `json:"phone"`
+	Message string `json:"message"`
 }
 
 type Email struct {
-	To string
+	To   string
 	Body string
 }
 
 type SmtpConfig struct {
-	Host string "`json:host`"
-	Port string "`json:port`"
-	From string "`json:from.email`"
-	Name string "`json:from.name`"
-	Username  string "`json.username`"
-	Password string "`json.password`"
+	Host     string
+	Port     string
+	From     string
+	Username string
+	Password string
 }
-
 
 func Send(email Email, config SmtpConfig) error {
 
@@ -35,7 +33,7 @@ func Send(email Email, config SmtpConfig) error {
 	return smtp.SendMail(
 		mailer,
 		smtp.PlainAuth("", config.Username, config.Password, mailer),
-		config.From, 
+		config.From,
 		[]string{email.To},
 		[]byte(email.Body),
 	)
