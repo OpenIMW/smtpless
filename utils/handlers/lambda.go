@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"os"
-	"encoding/base64"
+	"net/url"
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -30,7 +30,7 @@ func response(res Response) (events.APIGatewayProxyResponse, error) {
 
 func handle(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	body, err := base64.StdEncoding.DecodeString(request.Body)
+	params, err := url.ParseQuery(request.Body)
 
 	if err != nil {
 		return response(Response{
@@ -42,23 +42,9 @@ func handle(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespon
 		})
 	}
 
-	var re utils.RawEmail
-
-	err = json.Unmarshal(body, &re)
-
-	if err != nil {
-		return response(Response{
-			Status: 403,
-			Body: JsonBody{
-				"type":    "error",
-				"message": "Invalid json body",
-			},
-		})
-	}
-
 	email := utils.Email{
 		To:   "test",
-		Body: "body",
+		Body: "message from: "+ params.Get("email"),
 	}
 
 	smtp := utils.SmtpConfig{

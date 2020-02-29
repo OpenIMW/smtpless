@@ -2,5 +2,5 @@
   "resource": "/",
   "path": "/",
   "httpMethod": "POST",
-  "body": "eyJlbWFpbCI6InRlc3RAYXNhLmNvbSJ9"
+  "body": "email=example@example.com&name=mohamedd"
 }
