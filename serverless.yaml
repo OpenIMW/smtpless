@@ -1,9 +1,6 @@
 # Source: https://github.com/serverless/examples/blob/master/aws-golang-http-get-post
 service: smtpless
 
-# You can pin your service to only deploy with a specific Serverless version
-# Check out our docs for more details
-# frameworkVersion: "=X.X.X"
 frameworkVersion: ">=1.28.0 <2.0.0"
 
 provider:
@@ -11,27 +8,14 @@ provider:
   runtime: go1.x
 
 package:
- exclude:
-   - ./**
- include:
-   - ./bin/**
+  individually: true
 
 functions:
-  post:
-    handler: bin/smtpless
+  mail:
+    handler: smtpless
     events:
       - http:
-          path: /mail
+          path: /
           method: post
-
-# you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
+    package:
+      artifact: build/smtpless.zip
