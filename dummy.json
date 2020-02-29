@@ -1,0 +1,6 @@
+{
+  "resource": "/",
+  "path": "/",
+  "httpMethod": "POST",
+  "body": "eyJlbWFpbCI6InRlc3RAYXNhLmNvbSJ9"
+}
