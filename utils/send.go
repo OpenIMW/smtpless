@@ -14,7 +14,7 @@ type RawEmail struct {
 }
 
 type Email struct {
-	To   string
+	To   []string
 	Body string
 }
 
@@ -34,7 +34,7 @@ func Send(email Email, config SmtpConfig) error {
 		mailer,
 		smtp.PlainAuth("", config.Username, config.Password, mailer),
 		config.From,
-		[]string{email.To},
+		email.To,
 		[]byte(email.Body),
 	)
 }

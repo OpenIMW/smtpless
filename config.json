@@ -1,0 +1,10 @@
+{
+  "destinations":
+  [
+  	{
+  		"token": "e244b6affd4f94a32457e1185b19fc56ca9b0dd316fe4d0f5fb4780745dccbc1",
+  		"host": "example.com",
+  		"to": ["test@example.com"]
+  	}
+  ]
+}

@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/openimw/smtpless/utils"
 	"gopkg.in/ezzarghili/recaptcha-go.v4"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
@@ -23,6 +24,14 @@ type Response struct {
 	Body    JsonBody
 }
 
+type DistConfig struct {
+	Destinations []struct {
+		Token string   `json:"token"`
+		Host  string   `json:"host"`
+		To    []string `json:"to"`
+	} `json:"destinations"`
+}
+
 func respond(res Response) (events.APIGatewayProxyResponse, error) {
 
 	body, err := json.Marshal(res.Body)
@@ -34,9 +43,61 @@ func respond(res Response) (events.APIGatewayProxyResponse, error) {
 	}, err
 }
 
+func readFile(name string) ([]byte, error) {
+
+	cwd, err := os.Getwd()
+
+	if err != nil {
+
+		return []byte{}, err
+	}
+
+	return ioutil.ReadFile(cwd + name)
+}
+
+// TODO: resolve host and verify hmac hash
+func resolveDist(c DistConfig) (error, []string) {
+
+	return nil, c.Destinations[0].To
+}
+
 func handle(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	params, err := url.ParseQuery(request.Body)
+	var (
+		err           error
+		dist          []string
+		params        url.Values
+		config        DistConfig
+		configContent []byte
+	)
+
+	configContent, err = readFile("/config.json")
+
+	if err != nil {
+		return respond(Response{
+			Status: 403,
+			Body: JsonBody{
+				Type:    "config",
+				Success: false,
+				Message: "Invalid config path",
+			},
+		})
+	}
+
+	if json.Unmarshal(configContent, &config) != nil {
+		return respond(Response{
+			Status: 403,
+			Body: JsonBody{
+				Type:    "config",
+				Success: false,
+				Message: "Invalid json config",
+			},
+		})
+	}
+
+	configContent = nil
+
+	params, err = url.ParseQuery(request.Body)
 
 	if err != nil {
 		return respond(Response{
@@ -67,20 +128,30 @@ func handle(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespon
 		})
 	}
 
-	email := utils.Email{
-		To:   "test",
-		Body: "message from: " + params.Get("email"),
+	if err, dist = resolveDist(config); err != nil {
+		return respond(Response{
+			Status: 403,
+			Body: JsonBody{
+				Type:    "host",
+				Success: false,
+				Message: err.Error(),
+			},
+		})
 	}
 
-	smtp := utils.SmtpConfig{
-		Host:     os.Getenv("EMAIL_HOST"),
-		Port:     os.Getenv("EMAIL_PORT"),
-		From:     os.Getenv("EMAIL_FROM"),
-		Username: os.Getenv("EMAIL_USERNAME"),
-		Password: os.Getenv("EMAIL_PASSWORD"),
-	}
-
-	err = utils.Send(email, smtp)
+	err = utils.Send(
+		utils.Email{
+			To:   dist,
+			Body: "message from: " + params.Get("email"),
+		},
+		utils.SmtpConfig{
+			Host:     os.Getenv("EMAIL_HOST"),
+			Port:     os.Getenv("EMAIL_PORT"),
+			From:     os.Getenv("EMAIL_FROM"),
+			Username: os.Getenv("EMAIL_USERNAME"),
+			Password: os.Getenv("EMAIL_PASSWORD"),
+		},
+	)
 
 	if err != nil {
 		return respond(Response{
