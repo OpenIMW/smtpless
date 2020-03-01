@@ -1,15 +1,21 @@
 package handlers
 
 import (
-	"os"
-	"net/url"
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/openimw/smtpless/utils"
+	"gopkg.in/ezzarghili/recaptcha-go.v4"
+	"net/url"
+	"os"
+	"time"
 )
 
-type JsonBody map[string]string
+type JsonBody struct {
+	Success bool   `json:"success"`
+	Type    string `json:"type"`
+	Message string `json:"message"`
+}
 
 type Response struct {
 	Status  int
@@ -17,7 +23,7 @@ type Response struct {
 	Body    JsonBody
 }
 
-func response(res Response) (events.APIGatewayProxyResponse, error) {
+func respond(res Response) (events.APIGatewayProxyResponse, error) {
 
 	body, err := json.Marshal(res.Body)
 
@@ -33,18 +39,37 @@ func handle(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespon
 	params, err := url.ParseQuery(request.Body)
 
 	if err != nil {
-		return response(Response{
+		return respond(Response{
 			Status: 403,
 			Body: JsonBody{
-				"type":    "error",
-				"message": "Invalid body data",
+				Type:    "data",
+				Success: false,
+				Message: "Invalid body data",
+			},
+		})
+	}
+
+	var captcha recaptcha.ReCAPTCHA
+
+	if captcha, err = recaptcha.NewReCAPTCHA(os.Getenv("RECAPTCHA_SECRET"), recaptcha.V3, 10*time.Second); err == nil {
+
+		err = captcha.Verify(params.Get("recaptcha_response"))
+	}
+
+	if err != nil {
+		return respond(Response{
+			Status: 403,
+			Body: JsonBody{
+				Type:    "recaptcha",
+				Success: false,
+				Message: err.Error(),
 			},
 		})
 	}
 
 	email := utils.Email{
 		To:   "test",
-		Body: "message from: "+ params.Get("email"),
+		Body: "message from: " + params.Get("email"),
 	}
 
 	smtp := utils.SmtpConfig{
@@ -58,20 +83,22 @@ func handle(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespon
 	err = utils.Send(email, smtp)
 
 	if err != nil {
-		return response(Response{
+		return respond(Response{
 			Status: 403,
 			Body: JsonBody{
-				"type":    "error",
-				"message": "Cannot send email",
+				Type:    "mail",
+				Success: false,
+				Message: "Cannot send email",
 			},
 		})
 	}
 
-	return response(Response{
+	return respond(Response{
 		Status: 200,
 		Body: JsonBody{
-			"type":    "success",
-			"message": "Email sent successfully.",
+			Type:    "mail",
+			Success: true,
+			Message: "Email sent successfully.",
 		},
 	})
 }
